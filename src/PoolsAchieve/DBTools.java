@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -26,21 +27,25 @@ public class DBTools {
             500);
 
     static {
-        //定时清理集合中不活跃连接的时间，单位：秒
-        final Integer intervalsSeconds = 5;
-        //第一次清理执行的等待时间，单位：秒
-        final Integer firstWait = 0;
-        System.out.println("静态构造方法");
-        connMap.put("liucxtest1", new ConnCollection(10, "liucxtest1", null));
-        connMap.put("liucxtest2", new ConnCollection(10, "liucxtest2", null));
-        connMap.put("liucxtest3", new ConnCollection(10, "liucxtest3", null));
-        connMap.put("liucxtest4", new ConnCollection(10, "liucxtest4", null));
-        connMap.put("liucxtest4", new ConnCollection(10, "liucxtest5", null));
-        connMap.put("liucxtest4", new ConnCollection(10, "liucxtest6", null));
+        //开启循环清理之前等待的时间（第一次循环时间），单位：毫秒
+        final Integer _FIRSTWAIT = 5000;
+        //定时清理集合中不活跃连接的时间，单位：毫秒
+        final Integer _INTERVALSSECONDS = 5000;
+        //不活动链接保留时间  单位：秒
+        final Long _KEEPSECONDS = 20l;
 
-        connMap.put("liucxtest5", new ConnCollection(10, "liucxtest7", null));
-        ClearMap(firstWait, intervalsSeconds);
+        System.out.println("静态构造方法");
+        connMap.put("liucxtest1", new ConnCollection(new Date(), "liucxtest1", null));
+        connMap.put("liucxtest2", new ConnCollection(new Date(), "liucxtest2", null));
+        connMap.put("liucxtest3", new ConnCollection(new Date(), "liucxtest3", null));
+        connMap.put("liucxtest4", new ConnCollection(new Date(), "liucxtest4", null));
+        connMap.put("liucxtest5", new ConnCollection(new Date(), "liucxtest5", null));
+        connMap.put("liucxtest6", new ConnCollection(new Date(), "liucxtest6", null));
+
+        connMap.put("liucxtest7", new ConnCollection(new Date(), "liucxtest7", null));
+        ClearMap(_FIRSTWAIT, _INTERVALSSECONDS, _KEEPSECONDS);
     }
+
     /**
      * 获取数据list
      *
@@ -55,8 +60,7 @@ public class DBTools {
             synchronized (DBTools.class) {
                 if (Conn == null) {
                     //省略获取连接 Conn = GetConnection(env, dbEnum);
-                    Conn = new ConnCollection(20);
-                    Conn.setRequestKey(connectKey);
+                    Conn = new ConnCollection(new Date(), connectKey, null);
                     connMap.put(connectKey, Conn);
                 }
             }
@@ -69,23 +73,25 @@ public class DBTools {
      * @param firstWait
      * @param intervalsSeconds
      */
-    public static void ClearMap(Integer firstWait, Integer intervalsSeconds) {
+    public static void ClearMap(final Integer firstWait, final Integer intervalsSeconds, final Long keepSeconds) {
         System.out.println("执行ClearMap");
         Runnable runnable = new Runnable() {
             public void run() {
-                Integer count =0;
+                Integer count = 0;
                 while (true) {
                     count++;
-                    System.out.println("持续循环第"+count+"次--- size为" + connMap.size());
+                    System.out.println("持续循环第" + count + "次--- size为" + connMap.size());
                     Iterator<Map.Entry<String, ConnCollection>> it = connMap.entrySet().iterator();
                     while (it.hasNext()) {
 
                         Map.Entry<String, ConnCollection> item = it.next();
                         String key = item.getKey();
                         ConnCollection obj = item.getValue();
-                        Integer seconds = obj.getSeconds();
-                        System.out.println("当前循环item输出为:" + obj.toString());
-                        if (seconds == 0) {
+                        Date d = obj.getNewDate();
+                        Date now = new Date();
+                        Long l = (now.getTime() - d.getTime()) / 1000;//计算相差秒数
+                        System.out.println("当前时间差值为" + l + "秒，当前循环item输出为:" + obj.toString());
+                        if (l > keepSeconds) {
                             System.out.println("执行删除" + obj.getRequestKey());
                             //关闭数据库连接
 
@@ -95,7 +101,7 @@ public class DBTools {
                         }
                     }
                     try {
-                        Thread.sleep(2000);
+                        Thread.sleep(5000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -103,11 +109,13 @@ public class DBTools {
             }
         };
         Thread t1 = new Thread(runnable);
+        //第一次循环前的等待时间。
+        try {
+            Thread.sleep(firstWait);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         t1.start();
-        //ScheduledExecutorService service = Executors
-        //      .newSingleThreadScheduledExecutor();
-        // 第二个参数为首次执行的延时时间，第三个参数为定时执行的间隔时间
-        //System.out.println("ClearMap Begin !!");
-        //service.scheduleAtFixedRate(runnable, firstWait, intervalsSeconds, TimeUnit.SECONDS);
+
     }
 }

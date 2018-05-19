@@ -1,6 +1,8 @@
 package PoolsAchieve;
 
 import java.sql.Connection;
+import java.util.Date;
+
 
 /**
  *  数据库链接操作实体
@@ -8,43 +10,47 @@ import java.sql.Connection;
  */
 public class ConnCollection {
     /**
-     * @param InitSeconds 初始化倒计时时间（秒）
+     * @param InitDate 初始化倒计时时间（秒）
      */
-    public ConnCollection(Integer  InitSeconds) {
-        this.InitSeconds = InitSeconds;
-        this.Seconds = InitSeconds;
-        CountDown ();
-    }
+    public ConnCollection(Date  InitDate) {
 
-    public ConnCollection(Integer initSeconds, String requestKey, Connection conn) {
-        InitSeconds = initSeconds;
-        Seconds = InitSeconds;
+    }
+    public ConnCollection(Date initDate, String requestKey, Connection conn) {
+        InitDate = initDate;
+        NewDate = initDate;
         RequestKey = requestKey;
         Conn = conn;
-        CountDown ();
     }
 
-    //初始时间秒数
-    private Integer InitSeconds;
-    //剩余的秒数
-    private Integer Seconds;
-    //重置剩余时间
-    private void  ResetSeconds(){
-        this.Seconds = this.InitSeconds;
-    }
-    //秒单位倒计时
-    private void CountDown ()  {
-         while (Seconds>0){
-             Seconds--;
-             try {
-                 Thread.sleep(1000);
-             } catch (InterruptedException e) {
-                 e.printStackTrace();
-             }
-         }
+    //创建实例的时间，备用
+    private Date InitDate;
+    //用于判断的时间，每次操作更新会更新该时间
+    private Date NewDate;
+
+    /**
+     * 有任何操作时自动调用该方法，刷新对比时间
+     */
+    private void  ResetDate(){
+        this.NewDate = new Date();
     }
     private String RequestKey;
     private Connection Conn;
+
+    public Date getInitDate() {
+        return InitDate;
+    }
+
+    public void setInitDate(Date initDate) {
+        InitDate = initDate;
+    }
+
+    public Date getNewDate() {
+        return NewDate;
+    }
+
+    public void setNewDate(Date newDate) {
+        NewDate = newDate;
+    }
 
     public String getRequestKey() {
         return RequestKey;
@@ -55,28 +61,20 @@ public class ConnCollection {
     }
 
     public Connection getConn() {
-        this.ResetSeconds();
+        this.ResetDate();
         return Conn;
     }
 
     public void setConn(Connection conn) {
-        this.ResetSeconds();
+        this.ResetDate();
         Conn = conn;
-    }
-
-    public Integer getSeconds() {
-        return Seconds;
-    }
-
-    public void setSeconds(Integer seconds) {
-        Seconds = seconds;
     }
 
     @Override
     public String toString() {
         return "ConnCollection{" +
-                "InitSeconds=" + InitSeconds +
-                ", Seconds=" + Seconds +
+                "InitDate=" + InitDate +
+                ", NewDate=" + NewDate +
                 ", RequestKey='" + RequestKey + '\'' +
                 ", Conn=" + Conn +
                 '}';
