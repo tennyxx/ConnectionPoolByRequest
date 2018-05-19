@@ -70,7 +70,7 @@ public class DBTools {
      * @param intervalsSeconds
      */
     public static void ClearMap(Integer firstWait, Integer intervalsSeconds) {
-        System.out.println("执行循环");
+        System.out.println("执行ClearMap");
         Runnable runnable = new Runnable() {
             public void run() {
                 Integer count =0;
